@@ -1,40 +1,50 @@
 import os
 import json
-import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Flask, request, jsonify, send_from_directory, abort
+from sqlalchemy import (
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    Integer,
+    String,
+    Text,
+    DateTime,
+)
+from sqlalchemy.sql import select
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "experiment.db"))
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL environment variable is required (Render Postgres URL)")
+
 ADMIN_CODE = os.environ.get("ADMIN_CODE", "admin123")
 
 app = Flask(__name__, static_folder=BASE_DIR, static_url_path="")
 
+# --- Database setup (SQLAlchemy + Postgres) ---
+engine = create_engine(DATABASE_URL, pool_pre_ping=True, future=True)
+metadata = MetaData()
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+submissions = Table(
+    "submissions",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("submission_id", String(255), nullable=False),
+    Column("seed", Integer, nullable=False),
+    Column("timestamp_start", String(64), nullable=False),
+    Column("timestamp_end", String(64), nullable=False),
+    Column("duration_seconds", Integer, nullable=False),
+    Column("answers_json", Text, nullable=False),
+    Column("created_at", DateTime, nullable=False, default=datetime.utcnow),
+)
 
 
 def init_db():
-    conn = get_db()
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS submissions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            submission_id TEXT,
-            seed INTEGER,
-            timestamp_start TEXT,
-            timestamp_end TEXT,
-            duration_seconds INTEGER,
-            answers_json TEXT,
-            created_at TEXT DEFAULT (datetime('now'))
-        )
-        """
-    )
-    conn.commit()
+    # Create tables if they do not exist
+    metadata.create_all(engine)
     conn.close()
 
 
@@ -58,27 +68,18 @@ def api_submit():
     if not isinstance(data.get("answers"), list):
         return jsonify({"error": "answers must be a list"}), 400
 
-    conn = get_db()
-    try:
+    with engine.begin() as conn:
         conn.execute(
-            """
-            INSERT INTO submissions (
-                submission_id, seed, timestamp_start, timestamp_end,
-                duration_seconds, answers_json
-            ) VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                data["submissionId"],
-                int(data["seed"]),
-                str(data["timestampStart"]),
-                str(data["timestampEnd"]),
-                int(data["durationSeconds"]),
-                json.dumps(data["answers"], ensure_ascii=False),
-            ),
+            submissions.insert().values(
+                submission_id=data["submissionId"],
+                seed=int(data["seed"]),
+                timestamp_start=str(data["timestampStart"]),
+                timestamp_end=str(data["timestampEnd"]),
+                duration_seconds=int(data["durationSeconds"]),
+                answers_json=json.dumps(data["answers"], ensure_ascii=False),
+                created_at=datetime.utcnow(),
+            )
         )
-        conn.commit()
-    finally:
-        conn.close()
 
     return jsonify({"status": "ok"})
 
@@ -101,26 +102,8 @@ def require_admin_code_from_json():
 def api_admin_data():
     require_admin_code_from_query()
 
-    conn = get_db()
-    try:
-        cur = conn.execute(
-            """
-            SELECT
-                id,
-                submission_id,
-                seed,
-                timestamp_start,
-                timestamp_end,
-                duration_seconds,
-                answers_json,
-                created_at
-            FROM submissions
-            ORDER BY id ASC
-            """
-        )
-        rows = cur.fetchall()
-    finally:
-        conn.close()
+    with engine.connect() as conn:
+        rows = conn.execute(select(submissions).order_by(submissions.c.id.asc())).fetchall()
 
     result = []
     for r in rows:
@@ -136,7 +119,7 @@ def api_admin_data():
                 "timestampStart": r["timestamp_start"],
                 "timestampEnd": r["timestamp_end"],
                 "durationSeconds": r["duration_seconds"],
-                "createdAt": r["created_at"],
+                "createdAt": r["created_at"].isoformat() if r["created_at"] else None,
                 "answers": answers,
             }
         )
@@ -148,12 +131,8 @@ def api_admin_data():
 def api_admin_clear():
     require_admin_code_from_json()
 
-    conn = get_db()
-    try:
-        conn.execute("DELETE FROM submissions")
-        conn.commit()
-    finally:
-        conn.close()
+    with engine.begin() as conn:
+        conn.execute(submissions.delete())
 
     return jsonify({"status": "cleared"})
 
@@ -171,8 +150,7 @@ def api_admin_generate_test():
         return random.randint(min_v, max_v)
 
     now = datetime.utcnow()
-    conn = get_db()
-    try:
+    with engine.begin() as conn:
         for i in range(total):
             start = now
             duration_seconds = rand_int(60, 600)
@@ -190,25 +168,16 @@ def api_admin_generate_test():
                 )
 
             conn.execute(
-                """
-                INSERT INTO submissions (
-                    submission_id, seed, timestamp_start, timestamp_end,
-                    duration_seconds, answers_json
-                ) VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    f"test-{i + 1}-{int(start.timestamp())}",
-                    rand_int(1, 2**32 - 1),
-                    start.isoformat() + "Z",
-                    end.isoformat() + "Z",
-                    duration_seconds,
-                    json.dumps(answers, ensure_ascii=False),
-                ),
+                submissions.insert().values(
+                    submission_id=f"test-{i + 1}-{int(start.timestamp())}",
+                    seed=rand_int(1, 2**32 - 1),
+                    timestamp_start=start.isoformat() + "Z",
+                    timestamp_end=end.isoformat() + "Z",
+                    duration_seconds=duration_seconds,
+                    answers_json=json.dumps(answers, ensure_ascii=False),
+                    created_at=datetime.utcnow(),
+                )
             )
-
-        conn.commit()
-    finally:
-        conn.close()
 
     return jsonify({"status": "generated", "count": total})
 
