@@ -45,7 +45,6 @@ submissions = Table(
 def init_db():
     # Create tables if they do not exist
     metadata.create_all(engine)
-    conn.close()
 
 
 @app.route("/")
@@ -185,3 +184,4 @@ def api_admin_generate_test():
 if __name__ == "__main__":
     init_db()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+
