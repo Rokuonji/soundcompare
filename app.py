@@ -160,6 +160,36 @@ def api_admin_generate_test():
     total = int(data.get("count", 5))
     total_comparisons = 15
 
+    # Use the same real audio comparisons as in Comparison.html,
+    # so test datasets look like real ones and carry proper pairIds.
+    real_pairs = [
+        # Bohemian Rhapsody pairs
+        {"pairId": "bohemian_orig_vs_32",  "audio1": "audio/Bohemian_Original.wav", "audio2": "audio/Bohemian_32.wav"},
+        {"pairId": "bohemian_orig_vs_64",  "audio1": "audio/Bohemian_Original.wav", "audio2": "audio/Bohemian_64.wav"},
+        {"pairId": "bohemian_128_vs_orig", "audio1": "audio/Bohemian_128.wav",     "audio2": "audio/Bohemian_Original.wav"},
+        {"pairId": "bohemian_224_vs_orig", "audio1": "audio/Bohemian_224.wav",     "audio2": "audio/Bohemian_Original.wav"},
+        {"pairId": "bohemian_320_vs_orig", "audio1": "audio/Bohemian_320.wav",     "audio2": "audio/Bohemian_Original.wav"},
+        {"pairId": "bohemian_orig_vs_orig","audio1": "audio/Bohemian_Original.wav", "audio2": "audio/Bohemian_Original.wav"},
+        # Conan Gray pairs
+        {"pairId": "conan_32_vs_orig",    "audio1": "audio/Conan_32.wav",          "audio2": "audio/Conan_Original.wav"},
+        {"pairId": "conan_orig_vs_64",    "audio1": "audio/Conan_Original.wav",    "audio2": "audio/Conan_64.wav"},
+        {"pairId": "conan_orig_vs_128",   "audio1": "audio/Conan_Original.wav",    "audio2": "audio/Conan_128.wav"},
+        {"pairId": "conan_224_vs_orig",   "audio1": "audio/Conan_224.wav",         "audio2": "audio/Conan_Original.wav"},
+        {"pairId": "conan_320_vs_orig",   "audio1": "audio/Conan_320.wav",         "audio2": "audio/Conan_Original.wav"},
+        {"pairId": "conan_orig_vs_orig",  "audio1": "audio/Conan_Original.wav",    "audio2": "audio/Conan_Original.wav"},
+        # Tom's Diner pairs
+        {"pairId": "tomsdiner_orig_vs_32",  "audio1": "audio/TomsDiner_Original.wav", "audio2": "audio/TomsDiner_32.wav"},
+        {"pairId": "tomsdiner_64_vs_orig",  "audio1": "audio/TomsDiner_64.wav",       "audio2": "audio/TomsDiner_Original.wav"},
+        {"pairId": "tomsdiner_128_vs_orig", "audio1": "audio/TomsDiner_128.wav",      "audio2": "audio/TomsDiner_Original.wav"},
+        {"pairId": "tomsdiner_orig_vs_224", "audio1": "audio/TomsDiner_Original.wav", "audio2": "audio/TomsDiner_224.wav"},
+        {"pairId": "tomsdiner_320_vs_orig", "audio1": "audio/TomsDiner_320.wav",      "audio2": "audio/TomsDiner_Original.wav"},
+        {"pairId": "tomsdiner_orig_vs_orig","audio1": "audio/TomsDiner_Original.wav", "audio2": "audio/TomsDiner_Original.wav"},
+    ]
+
+    # Safety: don't request more comparisons than we have defined.
+    if total_comparisons > len(real_pairs):
+        total_comparisons = len(real_pairs)
+
     def rand_int(min_v, max_v):
         import random
 
@@ -172,14 +202,20 @@ def api_admin_generate_test():
             duration_seconds = rand_int(60, 600)
             end = start + timedelta(seconds=duration_seconds)
 
+            # Sample a subset of real pairs and randomize their order for this test submission.
+            import random
+
+            sampled_pairs = random.sample(real_pairs, total_comparisons)
+
             answers = []
-            for j in range(total_comparisons):
+            for idx, pair in enumerate(sampled_pairs, start=1):
                 answers.append(
                     {
-                        "comparison": j + 1,
-                        "audio1": f"Audio_{j + 1}_A.wav",
-                        "audio2": f"Audio_{j + 1}_B.wav",
-                        "answer": rand_int(0, 2),
+                        "comparison": idx,  # order within this synthetic session
+                        "pairId": pair["pairId"],
+                        "audio1": pair["audio1"],
+                        "audio2": pair["audio2"],
+                        "answer": rand_int(0, 2),  # random choice 0,1,2
                     }
                 )
 
