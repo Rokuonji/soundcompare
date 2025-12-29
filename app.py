@@ -9,6 +9,7 @@ from sqlalchemy import (
     Table,
     Column,
     Integer,
+    BigInteger,
     String,
     Text,
     DateTime,
@@ -33,7 +34,8 @@ submissions = Table(
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("submission_id", String(255), nullable=False),
-    Column("seed", Integer, nullable=False),
+    # seed can be up to 2^32-1 from the frontend, so use BigInteger to avoid overflow
+    Column("seed", BigInteger, nullable=False),
     Column("timestamp_start", String(64), nullable=False),
     Column("timestamp_end", String(64), nullable=False),
     Column("duration_seconds", Integer, nullable=False),
@@ -184,4 +186,3 @@ def api_admin_generate_test():
 if __name__ == "__main__":
     init_db()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
-
