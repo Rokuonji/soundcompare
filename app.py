@@ -13,6 +13,7 @@ from sqlalchemy import (
     String,
     Text,
     DateTime,
+    text,
 )
 from sqlalchemy.sql import select
 
@@ -45,6 +46,15 @@ submissions = Table(
 
 
 def init_db():
+    # Best-effort migration: if submissions already exists with seed as INTEGER,
+    # upgrade it to BIGINT so we can store full 32-bit seeds without overflow.
+    with engine.begin() as conn:
+        try:
+            conn.execute(text("ALTER TABLE submissions ALTER COLUMN seed TYPE BIGINT"))
+        except Exception:
+            # Ignore if table doesn't exist yet or column is already BIGINT.
+            pass
+
     # Create tables if they do not exist
     metadata.create_all(engine)
 
