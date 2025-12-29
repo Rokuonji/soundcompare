@@ -264,31 +264,32 @@
     }
 
     // Define the audio pairs (two clips per comparison)
+    // Each pair gets a stable ID so results can be summarized independently of order.
     const bohemianAudio = [
-        ['audio/Bohemian_Original.wav', 'audio/Bohemian_32.wav'],
-        ['audio/Bohemian_Original.wav', 'audio/Bohemian_64.wav'],
-        ['audio/Bohemian_128.wav', 'audio/Bohemian_Original.wav'],
-        ['audio/Bohemian_224.wav', 'audio/Bohemian_Original.wav'],
-        ['audio/Bohemian_320.wav', 'audio/Bohemian_Original.wav'],
-        ['audio/Bohemian_Original.wav', 'audio/Bohemian_Original.wav']
+        { id: 'bohemian_orig_vs_32',  audio1: 'audio/Bohemian_Original.wav', audio2: 'audio/Bohemian_32.wav' },
+        { id: 'bohemian_orig_vs_64',  audio1: 'audio/Bohemian_Original.wav', audio2: 'audio/Bohemian_64.wav' },
+        { id: 'bohemian_128_vs_orig', audio1: 'audio/Bohemian_128.wav',     audio2: 'audio/Bohemian_Original.wav' },
+        { id: 'bohemian_224_vs_orig', audio1: 'audio/Bohemian_224.wav',     audio2: 'audio/Bohemian_Original.wav' },
+        { id: 'bohemian_320_vs_orig', audio1: 'audio/Bohemian_320.wav',     audio2: 'audio/Bohemian_Original.wav' },
+        { id: 'bohemian_orig_vs_orig',audio1: 'audio/Bohemian_Original.wav', audio2: 'audio/Bohemian_Original.wav' }
     ];
 
     const conanAudio = [
-        ['audio/Conan_32.wav', 'audio/Conan_Original.wav'],
-        ['audio/Conan_Original.wav', 'audio/Conan_64.wav'],
-        ['audio/Conan_Original.wav', 'audio/Conan_128.wav'],
-        ['audio/Conan_224.wav', 'audio/Conan_Original.wav'],
-        ['audio/Conan_320.wav', 'audio/Conan_Original.wav'],
-        ['audio/Conan_Original.wav', 'audio/Conan_Original.wav']
+        { id: 'conan_32_vs_orig',    audio1: 'audio/Conan_32.wav',          audio2: 'audio/Conan_Original.wav' },
+        { id: 'conan_orig_vs_64',    audio1: 'audio/Conan_Original.wav',    audio2: 'audio/Conan_64.wav' },
+        { id: 'conan_orig_vs_128',   audio1: 'audio/Conan_Original.wav',    audio2: 'audio/Conan_128.wav' },
+        { id: 'conan_224_vs_orig',   audio1: 'audio/Conan_224.wav',         audio2: 'audio/Conan_Original.wav' },
+        { id: 'conan_320_vs_orig',   audio1: 'audio/Conan_320.wav',         audio2: 'audio/Conan_Original.wav' },
+        { id: 'conan_orig_vs_orig',  audio1: 'audio/Conan_Original.wav',    audio2: 'audio/Conan_Original.wav' }
     ];
 
     const tomsDinerAudio = [
-        ['audio/TomsDiner_Original.wav', 'audio/TomsDiner_32.wav'],
-        ['audio/TomsDiner_64.wav', 'audio/TomsDiner_Original.wav'],
-        ['audio/TomsDiner_128.wav', 'audio/TomsDiner_Original.wav'],
-        ['audio/TomsDiner_Original.wav', 'audio/TomsDiner_224.wav'],
-        ['audio/TomsDiner_320.wav', 'audio/TomsDiner_Original.wav'],
-        ['audio/TomsDiner_Original.wav', 'audio/TomsDiner_Original.wav']
+        { id: 'tomsdiner_orig_vs_32', audio1: 'audio/TomsDiner_Original.wav', audio2: 'audio/TomsDiner_32.wav' },
+        { id: 'tomsdiner_64_vs_orig', audio1: 'audio/TomsDiner_64.wav',       audio2: 'audio/TomsDiner_Original.wav' },
+        { id: 'tomsdiner_128_vs_orig',audio1: 'audio/TomsDiner_128.wav',      audio2: 'audio/TomsDiner_Original.wav' },
+        { id: 'tomsdiner_orig_vs_224',audio1: 'audio/TomsDiner_Original.wav', audio2: 'audio/TomsDiner_224.wav' },
+        { id: 'tomsdiner_320_vs_orig',audio1: 'audio/TomsDiner_320.wav',      audio2: 'audio/TomsDiner_Original.wav' },
+        { id: 'tomsdiner_orig_vs_orig',audio1: 'audio/TomsDiner_Original.wav', audio2: 'audio/TomsDiner_Original.wav' }
     ];
 
     const TOTAL_COMPARISONS = 15; // as in your notes
@@ -357,8 +358,8 @@
         const pair = comparisons[currentIndex];
         if (!pair) return;
 
-        audio1El.src = pair[0];
-        audio2El.src = pair[1];
+        audio1El.src = pair.audio1;
+        audio2El.src = pair.audio2;
         audio1El.load();
         audio2El.load();
 
@@ -380,9 +381,10 @@
         const durationSeconds = Math.round((end - start) / 1000);
 
         const submissionData = comparisons.map((pair, index) => ({
-            comparison: index + 1,
-            audio1: pair[0],
-            audio2: pair[1],
+            comparison: index + 1,          // order within this participant's session
+            pairId: pair.id,                // stable ID of the comparison, same across participants
+            audio1: pair.audio1,
+            audio2: pair.audio2,
             answer: answers[index]
         }));
 
@@ -450,8 +452,3 @@
 </script>
 </body>
 </html>
-
-
-
-
-
