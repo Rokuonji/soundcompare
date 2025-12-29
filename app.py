@@ -113,8 +113,13 @@ def require_admin_code_from_json():
 def api_admin_data():
     require_admin_code_from_query()
 
+    # Use mappings() so rows behave like dicts regardless of SQLAlchemy version/result style
     with engine.connect() as conn:
-        rows = conn.execute(select(submissions).order_by(submissions.c.id.asc())).fetchall()
+        rows = (
+            conn.execute(select(submissions).order_by(submissions.c.id.asc()))
+            .mappings()
+            .all()
+        )
 
     result = []
     for r in rows:
