@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Perceptual Audio Study – Comparison</title>
+    <style>
+        :root {
+            --bg: #020617;
+            --bg-elevated: #020617;
+            --border-subtle: #1f2937;
+            --accent: #4f46e5;
+            --accent-soft: rgba(79, 70, 229, 0.12);
+            --text-main: #e5e7eb;
+            --text-muted: #9ca3af;
+            --text-soft: #6b7280;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #020b3a 0, #020617 42%, #000 100%);
+            color: var(--text-main);
+        }
+        .page {
+            max-width: 960px;
+            margin: 40px auto 72px;
+            padding: 0 24px;
+        }
+        .site-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+        .site-title {
+            font-size: 0.85rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .site-title span {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+        .nav-links {
+            display: flex;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .nav-link {
+            padding: 0.35rem 0.8rem;
+            border-radius: 999px;
+            text-decoration: none;
+            color: var(--text-muted);
+            border: 1px solid transparent;
+        }
+        .nav-link:hover {
+            border-color: var(--border-subtle);
+            color: var(--text-main);
+        }
+        .nav-link-active {
+            background: var(--accent-soft);
+            color: var(--text-main);
+            border-color: rgba(148, 163, 184, 0.5);
+        }
+        .panel {
+            background: var(--bg-elevated);
+            border-radius: 18px;
+            border: 1px solid var(--border-subtle);
+            padding: 24px 24px 26px;
+            box-shadow: 0 22px 60px rgba(15, 23, 42, 0.85);
+        }
+        .comparison-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .comparison-title {
+            margin: 0;
+            font-size: 1.4rem;
+            letter-spacing: -0.02em;
+        }
+        .status {
+            font-size: 0.85rem;
+            color: var(--text-soft);
+        }
+        .intro {
+            margin: 0 0 1.25rem;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        .audio-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.4rem;
+            margin-bottom: 1.4rem;
+        }
+        .audio-card {
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+            padding: 1rem;
+            background: radial-gradient(circle at top left, rgba(79, 70, 229, 0.18), transparent 52%),
+                        rgba(15, 23, 42, 0.95);
+        }
+        .audio-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--text-soft);
+            margin-bottom: 0.6rem;
+        }
+        audio {
+            width: 100%;
+        }
+        .answers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin-bottom: 1.25rem;
+        }
+        .answer-btn {
+            padding: 0.55rem 1.2rem;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            background: rgba(15, 23, 42, 0.7);
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        .answer-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-main);
+        }
+        .answer-btn.selected {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #f9fafb;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 0.25rem;
+        }
+        .controls button {
+            padding: 0.7rem 1.6rem;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            cursor: pointer;
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-main);
+            font-size: 0.9rem;
+        }
+        .controls button[disabled] {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .results {
+            margin-top: 1.8rem;
+            padding-top: 1.2rem;
+            border-top: 1px solid var(--border-subtle);
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+        .warning {
+            color: #f97373;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+        @media (max-width: 640px) {
+            .page {
+                margin: 24px auto 40px;
+                padding: 0 16px;
+            }
+            .panel {
+                padding: 20px 18px 22px;
+            }
+            .comparison-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <header class="site-header">
+        <div class="site-title"><span>Perceptual Audio Study</span></div>
+        <nav class="nav-links">
+            <a href="START.html" class="nav-link nav-link-active">Experiment</a>
+            <a href="ADMIN.html" class="nav-link">Admin</a>
+        </nav>
+    </header>
+
+    <main class="panel">
+        <div id="meta-warning" class="warning" style="display:none">
+            Session data was not found. A new session has been created.
+        </div>
+
+        <div class="comparison-header">
+            <h1 class="comparison-title">Listen and compare each pair of clips</h1>
+            <div id="progress" class="status"></div>
+        </div>
+
+        <p class="intro">
+            Play both clips as many times as you like, then choose whether they sound the same,
+            or which one you feel sounds better overall.
+        </p>
+
+        <div class="audio-row">
+            <div class="audio-card">
+                <div class="audio-label">Audio 1</div>
+                <audio id="audio1" controls></audio>
+            </div>
+            <div class="audio-card">
+                <div class="audio-label">Audio 2</div>
+                <audio id="audio2" controls></audio>
+            </div>
+        </div>
+
+        <div class="answers">
+            <button class="answer-btn" data-answer="0">Both sound the same</button>
+            <button class="answer-btn" data-answer="1">1st sounds better</button>
+            <button class="answer-btn" data-answer="2">2nd sounds better</button>
+        </div>
+
+        <div class="controls">
+            <button id="back-btn" type="button">&larr; Back to start</button>
+            <button id="next-btn" type="button" disabled>I'm done with this pair &rarr;</button>
+        </div>
+
+        <div id="results" class="results" style="display:none">
+            <h2>Thank you for your participation!</h2>
+            <p>
+                Your answers have been recorded. You may now close this tab.
+            </p>
+        </div>
+    </main>
+</div>
+
+<script>
+    function createPRNG(seed) {
+        let s = seed >>> 0;
+        return function() {
+            s = (1664525 * s + 1013904223) >>> 0;
+            return s / 0x100000000;
+        };
+    }
+
+    function shuffleWithSeed(array, seed) {
+        const prng = createPRNG(seed);
+        const arr = array.slice();
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(prng() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    // Define the audio pairs (two clips per comparison)
+    const bohemianAudio = [
+        ['Bohemian_Original.wav', 'Bohemian_32.wav'],
+        ['Bohemian_Original.wav', 'Bohemian_64.wav'],
+        ['Bohemian_128.wav', 'Bohemian_Original.wav'],
+        ['Bohemian_224.wav', 'Bohemian_Original.wav'],
+        ['Bohemian_320.wav', 'Bohemian_Original.wav'],
+        ['Bohemian_Original.wav', 'Bohemian_Original.wav']
+    ];
+
+    const conanAudio = [
+        ['Conan_32.wav', 'Conan_Original.wav'],
+        ['Conan_Original.wav', 'Conan_64.wav'],
+        ['Conan_Original.wav', 'Conan_128.wav'],
+        ['Conan_224.wav', 'Conan_Original.wav'],
+        ['Conan_320.wav', 'Conan_Original.wav'],
+        ['Conan_Original.wav', 'Conan_Original.wav']
+    ];
+
+    const tomsDinerAudio = [
+        ['TomsDiner_Original.wav', 'TomsDiner_32.wav'],
+        ['TomsDiner_64.wav', 'TomsDiner_Original.wav'],
+        ['TomsDiner_128.wav', 'TomsDiner_Original.wav'],
+        ['TomsDiner_Original.wav', 'TomsDiner_224.wav'],
+        ['TomsDiner_320.wav', 'TomsDiner_Original.wav'],
+        ['TomsDiner_Original.wav', 'TomsDiner_Original.wav']
+    ];
+
+    const TOTAL_COMPARISONS = 15; // as in your notes
+
+    const audio1El = document.getElementById('audio1');
+    const audio2El = document.getElementById('audio2');
+    const answerButtons = Array.from(document.querySelectorAll('.answer-btn'));
+    const nextBtn = document.getElementById('next-btn');
+    const backBtn = document.getElementById('back-btn');
+    const progressEl = document.getElementById('progress');
+    const metaWarningEl = document.getElementById('meta-warning');
+    const resultsEl = document.getElementById('results');
+
+    let experimentMeta = null;
+    let comparisons = [];
+    let currentIndex = 0;
+    let answers = [];
+
+    function createNewMeta() {
+        // Fallback in case the user lands directly on this page or storage was cleared
+        const seed = (Date.now() % 0xFFFFFFFF) || 1;
+        const submissionId = (window.crypto && window.crypto.randomUUID)
+            ? window.crypto.randomUUID()
+            : `sub-${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
+        const timestampStart = new Date().toISOString();
+        const meta = { submissionId, seed, timestampStart };
+        localStorage.setItem('experimentMeta', JSON.stringify(meta));
+        localStorage.setItem('experimentSeed', String(seed));
+        return meta;
+    }
+
+    function loadMeta() {
+        const metaStr = localStorage.getItem('experimentMeta');
+        if (!metaStr) {
+            console.warn('No experimentMeta found – creating a new one.');
+            return createNewMeta();
+        }
+        try {
+            const meta = JSON.parse(metaStr);
+            if (!meta.submissionId || !meta.timestampStart || typeof meta.seed === 'undefined') {
+                throw new Error('Incomplete experimentMeta');
+            }
+            return meta;
+        } catch (e) {
+            console.error('Failed to parse experimentMeta, recreating', e);
+            return createNewMeta();
+        }
+    }
+
+    function initComparisons() {
+        const all = [...bohemianAudio, ...conanAudio, ...tomsDinerAudio];
+        const seedStr = localStorage.getItem('experimentSeed');
+        let shuffled = all;
+        if (seedStr && !isNaN(Number(seedStr))) {
+            shuffled = shuffleWithSeed(all, Number(seedStr));
+        }
+        comparisons = shuffled.slice(0, TOTAL_COMPARISONS);
+        answers = new Array(comparisons.length).fill(null);
+    }
+
+    function updateProgress() {
+        progressEl.textContent = `Comparison ${currentIndex + 1} of ${comparisons.length}`;
+    }
+
+    function renderCurrentComparison() {
+        const pair = comparisons[currentIndex];
+        if (!pair) return;
+
+        audio1El.src = pair[0];
+        audio2El.src = pair[1];
+        audio1El.load();
+        audio2El.load();
+
+        // restore selected answer if available
+        const currentAnswer = answers[currentIndex];
+        answerButtons.forEach(btn => {
+            const val = Number(btn.dataset.answer);
+            btn.classList.toggle('selected', currentAnswer === val);
+        });
+
+        nextBtn.disabled = currentAnswer === null;
+        updateProgress();
+    }
+
+    function finishExperiment() {
+        const timestampEnd = new Date().toISOString();
+        const start = new Date(experimentMeta.timestampStart);
+        const end = new Date(timestampEnd);
+        const durationSeconds = Math.round((end - start) / 1000);
+
+        const submissionData = comparisons.map((pair, index) => ({
+            comparison: index + 1,
+            audio1: pair[0],
+            audio2: pair[1],
+            answer: answers[index]
+        }));
+
+        const payload = {
+            submissionId: experimentMeta.submissionId,
+            seed: experimentMeta.seed,
+            timestampStart: experimentMeta.timestampStart,
+            timestampEnd,
+            durationSeconds,
+            answers: submissionData
+        };
+
+        // Send dataset to the server (Flask + SQLite on Render)
+        fetch('/api/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(err => {
+            console.error('Failed to submit data to server', err);
+        });
+
+        // Show a simple thank-you message; actual data is only visible on ADMIN.html
+        resultsEl.style.display = 'block';
+
+        // Optionally clear localStorage keys if you don't want to keep them
+        // localStorage.removeItem('experimentMeta');
+        // localStorage.removeItem('experimentSeed');
+    }
+
+    // Event wiring
+    answerButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const value = Number(btn.dataset.answer);
+            answers[currentIndex] = value;
+
+            answerButtons.forEach(b => b.classList.toggle('selected', b === btn));
+            nextBtn.disabled = false;
+        });
+    });
+
+    nextBtn.addEventListener('click', () => {
+        if (answers[currentIndex] === null) return;
+
+        if (currentIndex + 1 >= comparisons.length) {
+            finishExperiment();
+            nextBtn.disabled = true;
+            nextBtn.textContent = 'All comparisons completed';
+            return;
+        }
+
+        currentIndex += 1;
+        renderCurrentComparison();
+    });
+
+    backBtn.addEventListener('click', () => {
+        window.location.href = 'START.html';
+    });
+
+    // Initialize on page load
+    experimentMeta = loadMeta();
+    if (experimentMeta) {
+        initComparisons();
+        renderCurrentComparison();
+    }
+</script>
+</body>
+</html>

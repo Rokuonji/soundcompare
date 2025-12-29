@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Perceptual Audio Study – Start</title>
+    <style>
+        :root {
+            --bg: #020617;
+            --bg-elevated: #020617;
+            --border-subtle: #1f2937;
+            --accent: #4f46e5;
+            --accent-soft: rgba(79, 70, 229, 0.12);
+            --text-main: #e5e7eb;
+            --text-muted: #9ca3af;
+            --text-soft: #6b7280;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #020b3a 0, #020617 42%, #000 100%);
+            color: var(--text-main);
+        }
+        .page {
+            max-width: 960px;
+            margin: 40px auto 72px;
+            padding: 0 24px;
+        }
+        .site-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 40px;
+        }
+        .site-title {
+            font-size: 0.85rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .site-title span {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+        .nav-links {
+            display: flex;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .nav-link {
+            padding: 0.35rem 0.8rem;
+            border-radius: 999px;
+            text-decoration: none;
+            color: var(--text-muted);
+            border: 1px solid transparent;
+        }
+        .nav-link:hover {
+            border-color: var(--border-subtle);
+            color: var(--text-main);
+        }
+        .nav-link-active {
+            background: var(--accent-soft);
+            color: var(--text-main);
+            border-color: rgba(148, 163, 184, 0.5);
+        }
+        .panel {
+            background: var(--bg-elevated);
+            border-radius: 18px;
+            border: 1px solid var(--border-subtle);
+            padding: 28px 26px 30px;
+            box-shadow: 0 22px 60px rgba(15, 23, 42, 0.85);
+        }
+        .hero-title {
+            font-size: 2.3rem;
+            letter-spacing: -0.04em;
+            margin: 0 0 0.75rem;
+        }
+        .hero-kicker {
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 0.78rem;
+            color: var(--text-soft);
+            margin-bottom: 0.9rem;
+        }
+        .hero-lead {
+            margin: 0 0 1rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        .hero-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            margin-top: 1.25rem;
+            font-size: 0.85rem;
+            color: var(--text-soft);
+        }
+        .meta-label {
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+        .meta-value {
+            margin-top: 0.2rem;
+        }
+        .actions {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.9rem;
+            align-items: center;
+        }
+        .btn-primary {
+            padding: 0.8rem 1.7rem;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: #f9fafb;
+            font-size: 0.98rem;
+            cursor: pointer;
+        }
+        .btn-primary:hover {
+            filter: brightness(1.05);
+        }
+        .fine-print {
+            margin-top: 0.75rem;
+            font-size: 0.8rem;
+            color: var(--text-soft);
+        }
+        @media (max-width: 640px) {
+            .page {
+                margin: 24px auto 40px;
+                padding: 0 16px;
+            }
+            .panel {
+                padding: 22px 18px 24px;
+            }
+            .hero-title {
+                font-size: 1.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <header class="site-header">
+        <div class="site-title"><span>Perceptual Audio Study</span></div>
+        <nav class="nav-links">
+            <a href="START.html" class="nav-link nav-link-active">Experiment</a>
+            <a href="ADMIN.html" class="nav-link">Admin</a>
+        </nav>
+    </header>
+
+    <main class="panel">
+        <div class="hero-kicker">Listening experiment</div>
+        <h1 class="hero-title">How well can you hear audio compression?</h1>
+        <p class="hero-lead">
+            You will hear short pairs of music clips and decide whether one sounds better,
+            or if they sound the same. Your answers help quantify how audible different
+            MP3 bitrates are.
+        </p>
+        <div class="hero-meta">
+            <div>
+                <div class="meta-label">Duration</div>
+                <div class="meta-value">≈ 10–15 minutes</div>
+            </div>
+            <div>
+                <div class="meta-label">Audio setup</div>
+                <div class="meta-value">Headphones and a quiet room recommended</div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="start-btn" class="btn-primary">Start experiment</button>
+        </div>
+        <p class="fine-print">
+            When you start, we create an anonymous session ID and timestamp to keep track of
+            your progress. Please avoid refreshing the comparison page while answering.
+        </p>
+    </main>
+</div>
+
+<script>
+    // Simple deterministic pseudo random number generator (LCG)
+    function createPRNG(seed) {
+        let s = seed >>> 0;
+        return function() {
+            // numbers from Numerical Recipes LCG
+            s = (1664525 * s + 1013904223) >>> 0;
+            return s / 0x100000000; // 0..1
+        };
+    }
+
+    function generateSeed() {
+        // 1 .. 2^32-1
+        const max = 0xFFFFFFFF;
+        return Math.floor(Math.random() * max) + 1;
+    }
+
+    function generateSubmissionId() {
+        if (window.crypto && window.crypto.randomUUID) {
+            return window.crypto.randomUUID();
+        }
+        // Fallback if randomUUID is not supported
+        const rand = Math.random().toString(16).slice(2);
+        const time = Date.now().toString(16);
+        return `sub-${time}-${rand}`;
+    }
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+        const submissionId = generateSubmissionId();
+        const seed = generateSeed();
+        const timestampStart = new Date().toISOString();
+
+        // Store experiment meta-data so Comparison.html can read it
+        const meta = {
+            submissionId,
+            seed,
+            timestampStart
+        };
+
+        localStorage.setItem('experimentMeta', JSON.stringify(meta));
+
+        // (Optional) also store seed for deterministic shuffling
+        localStorage.setItem('experimentSeed', String(seed));
+
+        // Navigate to the comparison page
+        window.location.href = 'Comparison.html';
+    });
+</script>
+</body>
+</html>
