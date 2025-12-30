@@ -157,8 +157,16 @@ def api_admin_clear():
 def api_admin_generate_test():
     data = require_admin_code_from_json()
 
+    # "count" is the requested number of synthetic submissions. Each submission
+    # contains exactly one answer for every comparison pair, so every pairId
+    # ends up with the same total number of answers n across the generated
+    # dataset (n = count).
     total = int(data.get("count", 5))
-    total_comparisons = 15
+
+    # We now have 6 Vergleiche (32, 64, 128, 224, 320 & orig vs orig)
+    # for each of the 3 Songs. Use *all* comparisons per Test-Sitzung so that
+    # every pairId occurs equally often.
+    total_comparisons = 18
 
     # Use the same real audio comparisons as in Comparison.html,
     # so test datasets look like real ones and carry proper pairIds.
