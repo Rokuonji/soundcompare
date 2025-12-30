@@ -1,312 +1,247 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <title>Audiostudie - Admin Panel</title>
-    <style>
-        :root {
-            --bg: #020617;
-            --bg-elevated: #020617;
-            --border-subtle: #1f2937;
-            --accent: #4f46e5;
-            --accent-soft: rgba(79, 70, 229, 0.12);
-            --text-main: #e5e7eb;
-            --text-muted: #9ca3af;
-            --text-soft: #6b7280;
-        }
-        * {
-            box-sizing: border-box;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: var(--bg);
-            color: var(--text-main);
-        }
-        .page {
-            max-width: 960px;
-            margin: 40px auto 72px;
-            padding: 0 24px;
-        }
-        .site-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 32px;
-        }
-        .site-title {
-            font-size: 0.85rem;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            color: var(--text-muted);
-        }
-        .site-title span {
-            color: var(--text-main);
-            font-weight: 600;
-        }
-        .nav-links {
-            display: flex;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-        }
-        .nav-link {
-            padding: 0.35rem 0.8rem;
-            border-radius: 999px;
-            text-decoration: none;
-            color: var(--text-muted);
-            border: 1px solid transparent;
-        }
-        .nav-link:hover {
-            border-color: var(--border-subtle);
-            color: var(--text-main);
-        }
-        .nav-link-active {
-            background: var(--accent-soft);
-            color: var(--text-main);
-            border-color: rgba(148, 163, 184, 0.5);
-        }
-        .card {
-            background: var(--bg-elevated);
-            padding: 2rem 2.2rem 2.4rem;
-            border-radius: 18px;
-            border: 1px solid var(--border-subtle);
-            box-shadow: 0 22px 60px rgba(15, 23, 42, 0.85);
-        }
-        h1 {
-            margin-top: 0;
-            font-size: 1.7rem;
-            letter-spacing: -0.03em;
-        }
-        .login {
-            display: flex;
-            gap: 0.75rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-        input[type="password"] {
-            padding: 0.6rem 0.9rem;
-            border-radius: 8px;
-            border: 1px solid var(--border-subtle);
-            min-width: 180px;
-            background: rgba(15, 23, 42, 0.9);
-            color: var(--text-main);
-        }
-        button {
-            padding: 0.6rem 1.3rem;
-            border-radius: 999px;
-            border: 1px solid rgba(148, 163, 184, 0.5);
-            cursor: pointer;
-            background: rgba(15, 23, 42, 0.95);
-            color: var(--text-main);
-            font-size: 0.9rem;
-        }
-        button:hover {
-            border-color: var(--accent);
-        }
-        .error {
-            color: #f97373;
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-        .db-actions {
-            display: flex;
-            gap: 0.75rem;
-            margin: 0.75rem 0 1rem;
-            flex-wrap: wrap;
-        }
-        .db-actions button {
-            background: rgba(15, 23, 42, 0.9);
-        }
-        textarea {
-            width: 100%;
-            min-height: 260px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            font-size: 0.85rem;
-            background: rgba(15, 23, 42, 0.9);
-            color: var(--text-main);
-            border-radius: 12px;
-            border: 1px solid var(--border-subtle);
-            padding: 0.9rem 1rem;
-        }
-        .hint {
-            font-size: 0.85rem;
-            color: var(--text-soft);
-            margin-top: 0.5rem;
-        }
-        @media (max-width: 640px) {
-            .page {
-                margin: 24px auto 40px;
-                padding: 0 16px;
+import os
+import json
+from datetime import datetime, timedelta
+
+from flask import Flask, request, jsonify, send_from_directory, abort
+from sqlalchemy import (
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    Integer,
+    BigInteger,
+    String,
+    Text,
+    DateTime,
+    text,
+)
+from sqlalchemy.sql import select
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL environment variable is required (Render Postgres URL)")
+
+ADMIN_CODE = os.environ.get("ADMIN_CODE", "admin123")
+
+app = Flask(__name__, static_folder=BASE_DIR, static_url_path="")
+
+# --- Database setup (SQLAlchemy + Postgres) ---
+engine = create_engine(DATABASE_URL, pool_pre_ping=True, future=True)
+metadata = MetaData()
+
+submissions = Table(
+    "submissions",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("submission_id", String(255), nullable=False),
+    # seed can be up to 2^32-1 from the frontend, so use BigInteger to avoid overflow
+    Column("seed", BigInteger, nullable=False),
+    Column("timestamp_start", String(64), nullable=False),
+    Column("timestamp_end", String(64), nullable=False),
+    Column("duration_seconds", Integer, nullable=False),
+    Column("answers_json", Text, nullable=False),
+    Column("created_at", DateTime, nullable=False, default=datetime.utcnow),
+)
+
+
+def init_db():
+    # Best-effort migration: if submissions already exists with seed as INTEGER,
+    # upgrade it to BIGINT so we can store full 32-bit seeds without overflow.
+    with engine.begin() as conn:
+        try:
+            conn.execute(text("ALTER TABLE submissions ALTER COLUMN seed TYPE BIGINT"))
+        except Exception:
+            # Ignore if table doesn't exist yet or column is already BIGINT.
+            pass
+
+    # Create tables if they do not exist
+    metadata.create_all(engine)
+
+
+@app.route("/")
+def index():
+    # Serve the start page
+    return send_from_directory(BASE_DIR, "START.html")
+
+
+@app.route("/api/submit", methods=["POST"])
+def api_submit():
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    required_fields = ["submissionId", "seed", "timestampStart", "timestampEnd", "durationSeconds", "answers"]
+    if not all(field in data for field in required_fields):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    # Basic validation of answers structure
+    if not isinstance(data.get("answers"), list):
+        return jsonify({"error": "answers must be a list"}), 400
+
+    with engine.begin() as conn:
+        conn.execute(
+            submissions.insert().values(
+                submission_id=data["submissionId"],
+                seed=int(data["seed"]),
+                timestamp_start=str(data["timestampStart"]),
+                timestamp_end=str(data["timestampEnd"]),
+                duration_seconds=int(data["durationSeconds"]),
+                answers_json=json.dumps(data["answers"], ensure_ascii=False),
+                created_at=datetime.utcnow(),
+            )
+        )
+
+    return jsonify({"status": "ok"})
+
+
+def require_admin_code_from_query():
+    code = request.args.get("code")
+    if not code or code != ADMIN_CODE:
+        abort(403)
+
+
+def require_admin_code_from_json():
+    data = request.get_json(silent=True) or {}
+    code = data.get("code")
+    if not code or code != ADMIN_CODE:
+        abort(403)
+    return data
+
+
+@app.route("/api/admin-data", methods=["GET"])
+def api_admin_data():
+    require_admin_code_from_query()
+
+    # Use mappings() so rows behave like dicts regardless of SQLAlchemy version/result style
+    with engine.connect() as conn:
+        rows = (
+            conn.execute(select(submissions).order_by(submissions.c.id.asc()))
+            .mappings()
+            .all()
+        )
+
+    result = []
+    for r in rows:
+        try:
+            answers = json.loads(r["answers_json"]) if r["answers_json"] else []
+        except Exception:
+            answers = []
+        result.append(
+            {
+                "id": r["id"],
+                "submissionId": r["submission_id"],
+                "seed": r["seed"],
+                "timestampStart": r["timestamp_start"],
+                "timestampEnd": r["timestamp_end"],
+                "durationSeconds": r["duration_seconds"],
+                "createdAt": r["created_at"].isoformat() if r["created_at"] else None,
+                "answers": answers,
             }
-            .card {
-                padding: 1.6rem 1.6rem 2rem;
-            }
-        }
-    </style>
-</head>
-<body>
-<div class="page">
-    <header class="site-header">
-        <div class="site-title"><span>Studie über Wahrnehmung komprimierter Audiodateien</span></div>
-        <nav class="nav-links">
-            <a href="START.html" class="nav-link">Experiment</a>
-            <a href="ADMIN.html" class="nav-link nav-link-active">Admin</a>
-        </nav>
-    </header>
+        )
 
-    <div class="card">
-        <h1>Experiment Admin</h1>
-        <p>Geben Sie den Admin-Code ein, um die gespeicherten Antworten sehen zu können.</p>
+    return jsonify(result)
 
-        <div id="login-section">
-            <div id="login-error" class="error" style="display:none"></div>
-            <form id="login-form" class="login">
-                <input id="admin-code" type="password" placeholder="Admin code" required />
-                <button type="submit">Log in</button>
-            </form>
-        </div>
 
-        <div id="data-section" style="display:none">
-            <p><strong>Als Admin eingeloggt.</strong></p>
-            <div class="db-actions">
-                <button type="button" id="refresh-db">Datenbank aktualisieren</button>
-                <button type="button" id="clear-db">Datenbank leeren</button>
-                <button type="button" id="generate-test-db">5 zufällige Testdatensätze generieren</button>
-                <button type="button" id="generate-test-db-20">20 zufällige Testdatensätze generieren</button>
-            </div>
+@app.route("/api/admin-clear", methods=["POST"])
+def api_admin_clear():
+    require_admin_code_from_json()
 
-            <div id="submission-count" class="hint"></div>
-            <textarea id="db-json" readonly>// No submissions stored yet.</textarea>
-            <div class="hint">Die Daten werden nur zu Analysezwecken dieser Studie verwendet.</div>
-        </div>
-    </div>
-</div>
+    with engine.begin() as conn:
+        conn.execute(submissions.delete())
 
-<script>
-    // Change this to whatever admin code you want (must match ADMIN_CODE on the server)
-    const ADMIN_CODE = 'admin123';
+    return jsonify({"status": "cleared"})
 
-    const loginForm = document.getElementById('login-form');
-    const adminCodeInput = document.getElementById('admin-code');
-    const loginError = document.getElementById('login-error');
-    const loginSection = document.getElementById('login-section');
-    const dataSection = document.getElementById('data-section');
-    const dbJsonTextarea = document.getElementById('db-json');
-    const submissionCountEl = document.getElementById('submission-count');
-    const refreshBtn = document.getElementById('refresh-db');
-    const clearBtn = document.getElementById('clear-db');
-    const generateTestBtn = document.getElementById('generate-test-db');
-    const generateTestBtn20 = document.getElementById('generate-test-db-20');
 
-    async function loadDb() {
-        dbJsonTextarea.value = '// Loading...';
-        if (submissionCountEl) {
-            submissionCountEl.textContent = '';
-        }
-        try {
-            const res = await fetch('/api/admin-data?code=' + encodeURIComponent(ADMIN_CODE));
-            if (!res.ok) {
-                dbJsonTextarea.value = '// Failed to load from server: HTTP ' + res.status;
-                if (submissionCountEl) {
-                    submissionCountEl.textContent = 'Failed to load submission count.';
-                }
-                return;
-            }
-            const data = await res.json();
-            const total = Array.isArray(data) ? data.length : 0;
-            if (submissionCountEl) {
-                submissionCountEl.textContent =
-                    total === 1 ? '1 completed submission' : total + ' completed submissions';
-            }
-            if (!Array.isArray(data) || data.length === 0) {
-                dbJsonTextarea.value = '// No submissions stored yet.';
-                return;
-            }
-            dbJsonTextarea.value = JSON.stringify(data, null, 2);
-        } catch (e) {
-            dbJsonTextarea.value = '// Error loading from server: ' + e.message;
-            if (submissionCountEl) {
-                submissionCountEl.textContent = 'Error loading submission count.';
-            }
-        }
-    }
+@app.route("/api/admin-generate-test", methods=["POST"])
+def api_admin_generate_test():
+    data = require_admin_code_from_json()
 
-    loginForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const code = adminCodeInput.value.trim();
-        if (code !== ADMIN_CODE) {
-            loginError.textContent = 'Invalid admin code.';
-            loginError.style.display = 'block';
-            return;
-        }
-        loginError.style.display = 'none';
-        loginSection.style.display = 'none';
-        dataSection.style.display = 'block';
-        loadDb();
-    });
+    # "count" is the requested number of synthetic submissions. Each submission
+    # contains exactly one answer for every comparison pair, so every pairId
+    # ends up with the same total number of answers n across the generated
+    # dataset (n = count).
+    total = int(data.get("count", 5))
 
-    refreshBtn.addEventListener('click', loadDb);
+    # We now have 6 Vergleiche (32, 64, 128, 224, 320 & orig vs orig)
+    # for each of the 3 Songs. Use *all* comparisons per Test-Sitzung so that
+    # every pairId occurs equally often.
+    total_comparisons = 18
 
-    clearBtn.addEventListener('click', async () => {
-        if (!confirm('This will delete all stored submissions on the server. Continue?')) {
-            return;
-        }
-        try {
-            const res = await fetch('/api/admin-clear', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: ADMIN_CODE })
-            });
-            if (!res.ok) {
-                alert('Failed to clear DB: HTTP ' + res.status);
-                return;
-            }
-            await loadDb();
-        } catch (e) {
-            alert('Error clearing DB: ' + e.message);
-        }
-    });
+    # Use the same real audio comparisons as in Comparison.html,
+    # so test datasets look like real ones and carry proper pairIds.
+    real_pairs = [
+        # Bohemian Rhapsody pairs
+        {"pairId": "bohemian_orig_vs_32",  "audio1": "audio/Bohemian_Original.wav", "audio2": "audio/Bohemian_32.wav"},
+        {"pairId": "bohemian_orig_vs_64",  "audio1": "audio/Bohemian_Original.wav", "audio2": "audio/Bohemian_64.wav"},
+        {"pairId": "bohemian_128_vs_orig", "audio1": "audio/Bohemian_128.wav",     "audio2": "audio/Bohemian_Original.wav"},
+        {"pairId": "bohemian_224_vs_orig", "audio1": "audio/Bohemian_224.wav",     "audio2": "audio/Bohemian_Original.wav"},
+        {"pairId": "bohemian_320_vs_orig", "audio1": "audio/Bohemian_320.wav",     "audio2": "audio/Bohemian_Original.wav"},
+        {"pairId": "bohemian_orig_vs_orig","audio1": "audio/Bohemian_Original.wav", "audio2": "audio/Bohemian_Original.wav"},
+        # Conan Gray pairs
+        {"pairId": "conan_32_vs_orig",    "audio1": "audio/Conan_32.wav",          "audio2": "audio/Conan_Original.wav"},
+        {"pairId": "conan_orig_vs_64",    "audio1": "audio/Conan_Original.wav",    "audio2": "audio/Conan_64.wav"},
+        {"pairId": "conan_orig_vs_128",   "audio1": "audio/Conan_Original.wav",    "audio2": "audio/Conan_128.wav"},
+        {"pairId": "conan_224_vs_orig",   "audio1": "audio/Conan_224.wav",         "audio2": "audio/Conan_Original.wav"},
+        {"pairId": "conan_320_vs_orig",   "audio1": "audio/Conan_320.wav",         "audio2": "audio/Conan_Original.wav"},
+        {"pairId": "conan_orig_vs_orig",  "audio1": "audio/Conan_Original.wav",    "audio2": "audio/Conan_Original.wav"},
+        # Tom's Diner pairs
+        {"pairId": "tomsdiner_orig_vs_32",  "audio1": "audio/TomsDiner_Original.wav", "audio2": "audio/TomsDiner_32.wav"},
+        {"pairId": "tomsdiner_64_vs_orig",  "audio1": "audio/TomsDiner_64.wav",       "audio2": "audio/TomsDiner_Original.wav"},
+        {"pairId": "tomsdiner_128_vs_orig", "audio1": "audio/TomsDiner_128.wav",      "audio2": "audio/TomsDiner_Original.wav"},
+        {"pairId": "tomsdiner_orig_vs_224", "audio1": "audio/TomsDiner_Original.wav", "audio2": "audio/TomsDiner_224.wav"},
+        {"pairId": "tomsdiner_320_vs_orig", "audio1": "audio/TomsDiner_320.wav",      "audio2": "audio/TomsDiner_Original.wav"},
+        {"pairId": "tomsdiner_orig_vs_orig","audio1": "audio/TomsDiner_Original.wav", "audio2": "audio/TomsDiner_Original.wav"},
+    ]
 
-    generateTestBtn.addEventListener('click', async () => {
-        if (!confirm('This will overwrite the current database with 5 random test datasets on the server. Continue?')) {
-            return;
-        }
-        try {
-            const res = await fetch('/api/admin-generate-test', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: ADMIN_CODE, count: 5 })
-            });
-            if (!res.ok) {
-                alert('Failed to generate test data: HTTP ' + res.status);
-                return;
-            }
-            await loadDb();
-        } catch (e) {
-            alert('Error generating test data: ' + e.message);
-        }
-    });
+    # Safety: don't request more comparisons than we have defined.
+    if total_comparisons > len(real_pairs):
+        total_comparisons = len(real_pairs)
 
-    generateTestBtn20.addEventListener('click', async () => {
-        if (!confirm('This will overwrite the current database with 20 random test datasets on the server. Continue?')) {
-            return;
-        }
-        try {
-            const res = await fetch('/api/admin-generate-test', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: ADMIN_CODE, count: 20 })
-            });
-            if (!res.ok) {
-                alert('Failed to generate test data: HTTP ' + res.status);
-                return;
-            }
-            await loadDb();
-        } catch (e) {
-            alert('Error generating test data: ' + e.message);
-        }
-    });
-</script>
-</body>
-</html>
+    def rand_int(min_v, max_v):
+        import random
+
+        return random.randint(min_v, max_v)
+
+    now = datetime.utcnow()
+    with engine.begin() as conn:
+        for i in range(total):
+            start = now
+            duration_seconds = rand_int(60, 600)
+            end = start + timedelta(seconds=duration_seconds)
+
+            # Sample a subset of real pairs and randomize their order for this test submission.
+            import random
+
+            sampled_pairs = random.sample(real_pairs, total_comparisons)
+
+            answers = []
+            for idx, pair in enumerate(sampled_pairs, start=1):
+                answers.append(
+                    {
+                        "comparison": idx,  # order within this synthetic session
+                        "pairId": pair["pairId"],
+                        "audio1": pair["audio1"],
+                        "audio2": pair["audio2"],
+                        "answer": rand_int(0, 2),  # random choice 0,1,2
+                    }
+                )
+
+            conn.execute(
+                submissions.insert().values(
+                    submission_id=f"test-{i + 1}-{int(start.timestamp())}",
+                    seed=rand_int(1, 2**32 - 1),
+                    timestamp_start=start.isoformat() + "Z",
+                    timestamp_end=end.isoformat() + "Z",
+                    duration_seconds=duration_seconds,
+                    answers_json=json.dumps(answers, ensure_ascii=False),
+                    created_at=datetime.utcnow(),
+                )
+            )
+
+    return jsonify({"status": "generated", "count": total})
+
+
+if __name__ == "__main__":
+    init_db()
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
