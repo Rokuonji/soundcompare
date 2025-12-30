@@ -208,6 +208,7 @@
             <h1 class="comparison-title">Hören Sie zu und vergleichen sie jedes Audiopaar</h1>
             <div id="progress" class="status"></div>
         </div>
+        <div id="current-song" class="status"></div>
 
         <p class="intro">
             Spielen Sie beide Clips so oft ab, wie Sie möchten, und wählen Sie dann aus, ob sie gleich klingen oder welcher Ihrer Meinung nach insgesamt besser klingt.
@@ -266,30 +267,30 @@
     // Define the audio pairs (two clips per comparison)
     // Each pair gets a stable ID so results can be summarized independently of order.
     const bohemianAudio = [
-        { id: 'bohemian_orig_vs_32',  audio1: 'audio/Bohemian_Original.wav', audio2: 'audio/Bohemian_32.wav' },
-        { id: 'bohemian_orig_vs_64',  audio1: 'audio/Bohemian_Original.wav', audio2: 'audio/Bohemian_64.wav' },
-        { id: 'bohemian_128_vs_orig', audio1: 'audio/Bohemian_128.wav',     audio2: 'audio/Bohemian_Original.wav' },
-        { id: 'bohemian_224_vs_orig', audio1: 'audio/Bohemian_224.wav',     audio2: 'audio/Bohemian_Original.wav' },
-        { id: 'bohemian_320_vs_orig', audio1: 'audio/Bohemian_320.wav',     audio2: 'audio/Bohemian_Original.wav' },
-        { id: 'bohemian_orig_vs_orig',audio1: 'audio/Bohemian_Original.wav', audio2: 'audio/Bohemian_Original.wav' }
+        { id: 'bohemian_orig_vs_32',   song: 'Bohemian Rhapsody', audio1: 'audio/Bohemian_Original.wav', audio2: 'audio/Bohemian_32.wav' },
+        { id: 'bohemian_orig_vs_64',   song: 'Bohemian Rhapsody', audio1: 'audio/Bohemian_Original.wav', audio2: 'audio/Bohemian_64.wav' },
+        { id: 'bohemian_128_vs_orig',  song: 'Bohemian Rhapsody', audio1: 'audio/Bohemian_128.wav',      audio2: 'audio/Bohemian_Original.wav' },
+        { id: 'bohemian_224_vs_orig',  song: 'Bohemian Rhapsody', audio1: 'audio/Bohemian_224.wav',      audio2: 'audio/Bohemian_Original.wav' },
+        { id: 'bohemian_320_vs_orig',  song: 'Bohemian Rhapsody', audio1: 'audio/Bohemian_320.wav',      audio2: 'audio/Bohemian_Original.wav' },
+        { id: 'bohemian_orig_vs_orig', song: 'Bohemian Rhapsody', audio1: 'audio/Bohemian_Original.wav', audio2: 'audio/Bohemian_Original.wav' }
     ];
 
     const conanAudio = [
-        { id: 'conan_32_vs_orig',    audio1: 'audio/Conan_32.wav',          audio2: 'audio/Conan_Original.wav' },
-        { id: 'conan_orig_vs_64',    audio1: 'audio/Conan_Original.wav',    audio2: 'audio/Conan_64.wav' },
-        { id: 'conan_orig_vs_128',   audio1: 'audio/Conan_Original.wav',    audio2: 'audio/Conan_128.wav' },
-        { id: 'conan_224_vs_orig',   audio1: 'audio/Conan_224.wav',         audio2: 'audio/Conan_Original.wav' },
-        { id: 'conan_320_vs_orig',   audio1: 'audio/Conan_320.wav',         audio2: 'audio/Conan_Original.wav' },
-        { id: 'conan_orig_vs_orig',  audio1: 'audio/Conan_Original.wav',    audio2: 'audio/Conan_Original.wav' }
+        { id: 'conan_32_vs_orig',    song: 'Conan Gray',  audio1: 'audio/Conan_32.wav',       audio2: 'audio/Conan_Original.wav' },
+        { id: 'conan_orig_vs_64',    song: 'Conan Gray',  audio1: 'audio/Conan_Original.wav', audio2: 'audio/Conan_64.wav' },
+        { id: 'conan_orig_vs_128',   song: 'Conan Gray',  audio1: 'audio/Conan_Original.wav', audio2: 'audio/Conan_128.wav' },
+        { id: 'conan_224_vs_orig',   song: 'Conan Gray',  audio1: 'audio/Conan_224.wav',      audio2: 'audio/Conan_Original.wav' },
+        { id: 'conan_320_vs_orig',   song: 'Conan Gray',  audio1: 'audio/Conan_320.wav',      audio2: 'audio/Conan_Original.wav' },
+        { id: 'conan_orig_vs_orig',  song: 'Conan Gray',  audio1: 'audio/Conan_Original.wav', audio2: 'audio/Conan_Original.wav' }
     ];
 
     const tomsDinerAudio = [
-        { id: 'tomsdiner_orig_vs_32', audio1: 'audio/TomsDiner_Original.wav', audio2: 'audio/TomsDiner_32.wav' },
-        { id: 'tomsdiner_64_vs_orig', audio1: 'audio/TomsDiner_64.wav',       audio2: 'audio/TomsDiner_Original.wav' },
-        { id: 'tomsdiner_128_vs_orig',audio1: 'audio/TomsDiner_128.wav',      audio2: 'audio/TomsDiner_Original.wav' },
-        { id: 'tomsdiner_orig_vs_224',audio1: 'audio/TomsDiner_Original.wav', audio2: 'audio/TomsDiner_224.wav' },
-        { id: 'tomsdiner_320_vs_orig',audio1: 'audio/TomsDiner_320.wav',      audio2: 'audio/TomsDiner_Original.wav' },
-        { id: 'tomsdiner_orig_vs_orig',audio1: 'audio/TomsDiner_Original.wav', audio2: 'audio/TomsDiner_Original.wav' }
+        { id: 'tomsdiner_orig_vs_32',  song: "Tom's Diner", audio1: 'audio/TomsDiner_Original.wav', audio2: 'audio/TomsDiner_32.wav' },
+        { id: 'tomsdiner_64_vs_orig',  song: "Tom's Diner", audio1: 'audio/TomsDiner_64.wav',       audio2: 'audio/TomsDiner_Original.wav' },
+        { id: 'tomsdiner_128_vs_orig', song: "Tom's Diner", audio1: 'audio/TomsDiner_128.wav',      audio2: 'audio/TomsDiner_Original.wav' },
+        { id: 'tomsdiner_orig_vs_224', song: "Tom's Diner", audio1: 'audio/TomsDiner_Original.wav', audio2: 'audio/TomsDiner_224.wav' },
+        { id: 'tomsdiner_320_vs_orig', song: "Tom's Diner", audio1: 'audio/TomsDiner_320.wav',      audio2: 'audio/TomsDiner_Original.wav' },
+        { id: 'tomsdiner_orig_vs_orig',song: "Tom's Diner", audio1: 'audio/TomsDiner_Original.wav', audio2: 'audio/TomsDiner_Original.wav' }
     ];
 
     const TOTAL_COMPARISONS = 15; // as in your notes
@@ -302,6 +303,7 @@
     const progressEl = document.getElementById('progress');
     const metaWarningEl = document.getElementById('meta-warning');
     const resultsEl = document.getElementById('results');
+    const currentSongEl = document.getElementById('current-song');
 
     let experimentMeta = null;
     let comparisons = [];
@@ -340,13 +342,34 @@
     }
 
     function initComparisons() {
-        const all = [...bohemianAudio, ...conanAudio, ...tomsDinerAudio];
         const seedStr = localStorage.getItem('experimentSeed');
-        let shuffled = all;
+        const allSongs = [bohemianAudio, conanAudio, tomsDinerAudio];
+        let combined = [];
+
         if (seedStr && !isNaN(Number(seedStr))) {
-            shuffled = shuffleWithSeed(all, Number(seedStr));
+            const numericSeed = Number(seedStr);
+            const totalSongs = allSongs.length;
+            const basePerSong = Math.floor(TOTAL_COMPARISONS / totalSongs);
+            let remainder = TOTAL_COMPARISONS - basePerSong * totalSongs;
+
+            allSongs.forEach((songArray, index) => {
+                const songSeed = numericSeed + index + 1;
+                const shuffledSong = shuffleWithSeed(songArray, songSeed);
+
+                let takeCount = basePerSong;
+                if (remainder > 0) {
+                    takeCount += 1;
+                    remainder -= 1;
+                }
+
+                combined.push(...shuffledSong.slice(0, Math.min(takeCount, shuffledSong.length)));
+            });
+        } else {
+            // Fallback: just take the first N comparisons in the defined order
+            combined = [...bohemianAudio, ...conanAudio, ...tomsDinerAudio].slice(0, TOTAL_COMPARISONS);
         }
-        comparisons = shuffled.slice(0, TOTAL_COMPARISONS);
+
+        comparisons = combined;
         answers = new Array(comparisons.length).fill(null);
     }
 
@@ -362,6 +385,11 @@
         audio2El.src = pair.audio2;
         audio1El.load();
         audio2El.load();
+
+        if (currentSongEl) {
+            const label = pair.song || '';
+            currentSongEl.textContent = label ? `Aktueller Song: ${label}` : '';
+        }
 
         // restore selected answer if available
         const currentAnswer = answers[currentIndex];
