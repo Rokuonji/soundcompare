@@ -156,9 +156,7 @@
     </header>
 
     <div class="card">
-        <h1>Experiment Admin</h1>
-        <p>Geben Sie den Admin-Code ein, um die gespeicherten Antworten sehen zu können.</p>
-
+        <h1>Einsendungsüberblick</h1>
         <div id="login-section">
             <div id="login-error" class="error" style="display:none"></div>
             <form id="login-form" class="login">
@@ -215,7 +213,7 @@
             const total = Array.isArray(data) ? data.length : 0;
             if (submissionCountEl) {
                 submissionCountEl.textContent =
-                    total === 1 ? '1 completed submission' : total + ' completed submissions';
+                    total === 1 ? '1 abgeschlossene Einsendung' : total + ' abgeschlossene Einsendungen';
             }
             if (!Array.isArray(data) || data.length === 0) {
                 dbJsonTextarea.value = '// No submissions stored yet.';
@@ -288,4 +286,5 @@
 </script>
 </body>
 </html>
+
 
